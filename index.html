@@ -1,0 +1,320 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>📅 Calendario – Equipo de ventas</title>
+
+  <!-- Tailwind via CDN + tu paleta -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand:  { DEFAULT:'#004aad', 50:'#e8eef9',100:'#d1dcf3',200:'#a2b9e6',300:'#7496da',400:'#4673cd',500:'#185fc8',600:'#004aad',700:'#003a88',800:'#002a62',900:'#001b3d'},
+            sky2:   { DEFAULT:'#1aa6ff' },
+            accent: { DEFAULT:'#fbeb39' } // ¡solo para detalles!
+          },
+          borderRadius: { '2xl':'1rem' }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    @media print { .no-print{display:none} body{font-size:11px} .card{break-inside:avoid} }
+    .badge{display:inline-flex;align-items:center;padding:.1rem .45rem;border-radius:9999px;font-size:.75rem;font-weight:600}
+    .b-crovara{background:#e8eef9;color:#004aad}
+    .b-canning{background:#e6f4ff;color:#005a99}
+    .b-libre{background:#e9f9f0;color:#0f5132}
+    .b-red{background:#f6eafa;color:#86198f}
+    .dot{display:inline-block;width:.55rem;height:.55rem;border-radius:9999px;background:#fbeb39;margin-right:.35rem}
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-900">
+  <!-- Header -->
+  <header class="no-print sticky top-0 z-10 bg-white/90 backdrop-blur border-b border-slate-200">
+    <div class="max-w-5xl mx-auto px-4 py-3 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+      <div class="flex items-center gap-3">
+        <img src="https://drive.google.com/uc?export=view&id=11sInq_aw2V0urx3aJE8kLfqW-w5qOFXQ" alt="Logo" class="h-8 w-auto rounded" />
+        <h1 class="text-xl font-semibold">📅 Calendario – Equipo de ventas</h1>
+      </div>
+      <div class="flex flex-wrap gap-2">
+        <select id="empleadoSelect" class="px-3 py-2 rounded-md border">
+          <option value="Matías">Matías</option>
+          <option value="Iván">Iván</option>
+          <option value="Lautaro">Lautaro</option>
+        </select>
+        <button id="btnReload" class="px-3 py-2 rounded-md bg-brand text-white hover:bg-brand-700">Recargar</button>
+      </div>
+    </div>
+    <div id="appStatus" class="no-print max-w-5xl mx-auto px-4 mb-2 text-sm"></div>
+  </header>
+
+  <main class="max-w-5xl mx-auto p-4 flex flex-col gap-6">
+    <!-- Calendario -->
+    <section class="card p-4 bg-white rounded-2xl shadow-sm border border-slate-200">
+      <div class="flex items-center justify-between mb-3">
+        <h2 class="text-lg font-semibold">Calendario (eventos del seleccionado)</h2>
+        <div class="text-xs text-slate-500 flex items-center gap-3">
+          <span><span class="dot"></span> detalles en amarillo = elementos clicables o destacados</span>
+        </div>
+      </div>
+      <div id="calendar" class="space-y-6"></div>
+    </section>
+
+    <!-- Consultas rápidas -->
+    <section class="card p-4 bg-white rounded-2xl shadow-sm border border-slate-200">
+      <h2 class="text-lg font-semibold mb-3">Consultas rápidas</h2>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+        <button class="qbtn px-4 py-3 rounded-xl bg-slate-100 hover:bg-slate-200" data-q="libre">Próximo sábado libre</button>
+        <button class="qbtn px-4 py-3 rounded-xl bg-slate-100 hover:bg-slate-200" data-q="canning">Próximo sábado Canning</button>
+        <button class="qbtn px-4 py-3 rounded-xl bg-slate-100 hover:bg-slate-200" data-q="reduccion">Próxima jornada reducida</button>
+      </div>
+      <div id="quickResult" class="mt-3 text-sm text-slate-700"></div>
+    </section>
+
+    <!-- Intercambio de día (dos fechas) -->
+    <section class="card p-4 bg-white rounded-2xl shadow-sm border border-slate-200">
+      <h2 class="text-lg font-semibold mb-2">Intercambio de día</h2>
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
+        <div>
+          <label class="block text-xs text-slate-500 mb-1">Tu nombre</label>
+          <select id="swapMe" class="w-full px-3 py-2 rounded-md border">
+            <option>Matías</option><option>Iván</option><option>Lautaro</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-xs text-slate-500 mb-1">Mi fecha (la cedo)</label>
+          <input id="swapMyDate" type="date" class="w-full px-3 py-2 rounded-md border" />
+        </div>
+        <div>
+          <label class="block text-xs text-slate-500 mb-1">Fecha que quiero</label>
+          <input id="swapTargetDate" type="date" class="w-full px-3 py-2 rounded-md border" />
+        </div>
+        <div class="flex items-end">
+          <button id="btnCheckSwap" class="w-full px-3 py-2 rounded-md bg-brand text-white hover:bg-brand-700">Ver asignados</button>
+        </div>
+      </div>
+      <div id="swapCheck" class="mt-3 text-sm"></div>
+      <div id="swapCTA" class="mt-2 text-sm"></div>
+    </section>
+
+    <footer class="text-center text-xs text-slate-500 py-6">
+      Hecho con HTML+JS (0$). Datos: Google Sheets publicado como CSV. — © Tu Empresa
+    </footer>
+  </main>
+
+  <script>
+    // ===== Debug visible =====
+    const statusBox = document.getElementById('appStatus');
+    const say = (msg, ok=false) => {
+      if (!statusBox) return;
+      statusBox.innerHTML = `<div class="${
+        ok ? 'text-emerald-700 bg-emerald-50' : 'text-red-700 bg-red-50'
+      } border rounded-md p-2">${msg}</div>`;
+    };
+    window.addEventListener('error', (e) => say(`⚠️ Error JS: ${e.message}`));
+
+    // ===== Config =====
+    const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQh4OOFKU2Z9YU3nTYLeSngPXFAPqADgO_HeT1JVYlLwmPpCnV0aZE-XAlVTEqytac4rOkjX34hD5Rw/pub?output=csv';
+    let rows = [];
+
+    // ===== Utils =====
+    const clean = (s) => (s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,''); // quita tildes
+    // parser robusto: dd/mm/yyyy o yyyy-mm-dd
+    function parseDateStr(s){
+      if(!s) return null;
+      if(/^\d{4}-\d{2}-\d{2}$/.test(s)){ // ISO
+        const [Y,M,D] = s.split('-').map(Number);
+        return new Date(Y, M-1, D);
+      }
+      if(/^\d{2}\/\d{2}\/\d{4}$/.test(s)){ // dd/mm/yyyy
+        const [D,M,Y] = s.split('/').map(Number);
+        return new Date(Y, M-1, D);
+      }
+      // fallback a Date
+      return new Date(s);
+    }
+    const fmt = (s) => {
+      const d = parseDateStr(s);
+      if (!d || isNaN(d)) return s;
+      return d.toLocaleDateString('es-AR',{ day:'2-digit', month:'short' });
+    };
+    const monthKey = (s) => {
+      const d = parseDateStr(s);
+      if (!d || isNaN(d)) return '';
+      return d.toLocaleDateString('es-AR',{ month:'long', year:'numeric' });
+    };
+    const parseCSV = (text) => {
+      const lines = text.trim().split(/\r?\n/);
+      const headers = lines[0].split(",").map(h => h.trim());
+      return lines.slice(1).map(line => {
+        const cols = line.split(/,(?=(?:[^"]*"[^"]*")*[^"]*$)/);
+        const o = {};
+        headers.forEach((h,i) => o[h] = (cols[i]||'').replace(/^"|"$/g,'').trim());
+        return o;
+      });
+    };
+
+    // ===== Carga de datos =====
+    async function loadData(url){
+      try{
+        const res = await fetch(url, { cache: 'no-cache' });
+        if(!res.ok) throw new Error(`No se pudo cargar CSV (${res.status})`);
+        const txt = await res.text();
+        const raw = parseCSV(txt);
+        rows = raw.map(r => ({
+          fecha: r['Fecha'],
+          dia: (r['Día'] || r['Día de la semana'] || ''),
+          crovara: r['Crovara (Sábado)'] || '',
+          canning: r['Canning (Sábado)'] || '',
+          libre: r['Libre (Sábado)'] || '',
+          reduccion: r['Reducción 8-14'] || ''
+        }));
+        say(`✅ CSV cargado: ${rows.length} filas`, true);
+        renderAll();
+      }catch(e){
+        say(`⚠️ No se pudo cargar tu CSV (${e.message}). Verificá que el link termine en /pub?output=csv`, false);
+      }
+    }
+
+    // ===== Render =====
+    function renderCalendar(){
+      const empleado = document.getElementById('empleadoSelect').value;
+      const calEl = document.getElementById('calendar');
+      calEl.innerHTML = '';
+
+      const mine = rows.filter(r =>
+        clean(r.libre).includes(clean(empleado)) ||
+        clean(r.crovara).includes(clean(empleado)) ||
+        clean(r.canning).includes(clean(empleado)) ||
+        clean(r.reduccion).includes(clean(empleado))
+      );
+
+      const groups = {};
+      mine.forEach(r => { const k = monthKey(r.fecha); (groups[k] ||= []).push(r); });
+
+      Object.entries(groups).forEach(([mes, arr]) => {
+        arr.sort((a,b)=> parseDateStr(a.fecha) - parseDateStr(b.fecha) );
+        const box = document.createElement('div');
+        box.innerHTML = `<div class="border rounded-xl p-3">
+          <div class="font-semibold mb-2">${mes}</div>
+          ${arr.map(r => `
+            <div class="flex items-center justify-between py-1 border-b last:border-b-0">
+              <div class="text-sm font-medium">${fmt(r.fecha)} <span class="text-slate-500">(${r.dia})</span></div>
+              <div class="flex gap-2">
+                ${clean(r.libre).includes(clean(empleado)) ? '<span class="badge b-libre">LIBRE</span>' : ''}
+                ${clean(r.crovara).includes(clean(empleado)) ? '<span class="badge b-crovara">Crovara</span>' : ''}
+                ${clean(r.canning).includes(clean(empleado)) ? '<span class="badge b-canning">Canning</span>' : ''}
+                ${clean(r.reduccion).includes(clean(empleado)) ? '<span class="badge b-red">Reducción 8–14</span>' : ''}
+              </div>
+            </div>
+          `).join('')}
+        </div>`;
+        calEl.appendChild(box);
+      });
+    }
+
+    // Botones rápidos
+    function nextEvent(kind){
+      const empleado = document.getElementById('empleadoSelect').value;
+      const today = new Date();
+      const future = rows
+        .map(r => ({...r, _d: parseDateStr(r.fecha)}))
+        .filter(r => r._d && r._d >= new Date(today.toDateString()));
+      let match;
+      if(kind==='libre') match = future.find(r => clean(r.libre).includes(clean(empleado)));
+      if(kind==='canning') match = future.find(r => clean(r.canning).includes(clean(empleado)));
+      if(kind==='reduccion') match = future.find(r => clean(r.reduccion).includes(clean(empleado)));
+      const box = document.getElementById('quickResult');
+      if(match){
+        const label = kind==='libre' ? 'Sábado libre' : kind==='canning' ? 'Sábado en Canning' : 'Jornada reducida';
+        box.innerHTML = `<span class="font-medium">${label}:</span> ${fmt(match.fecha)} <span class="text-slate-500">(${match.dia})</span>`;
+      } else { box.textContent = 'Sin eventos próximos encontrados.'; }
+    }
+
+    // Intercambio (dos fechas)
+    function asignadosFecha(isoDate){
+      const r = rows.find(x => x.fecha === isoDate);
+      if (!r) return null;
+      const pick = (cell) => (cell||'')
+        .split('+')
+        .map(s => s.replace(/Pablo/gi,'').trim())
+        .filter(Boolean);
+      const cro = pick(r.crovara);
+      const can = pick(r.canning);
+      const lib = (r.libre||'').trim();
+      const red = (r.reduccion||'').trim();
+      const inv = new Set([...cro, ...can]);
+      if (lib) inv.add(lib);
+      if (red) inv.add(red);
+      return { cro, can, lib, red, involucrados:[...inv] };
+    }
+
+    function checkSwapFull(){
+      const me = document.getElementById('swapMe').value;
+      const d1 = document.getElementById('swapMyDate').value;     // mi fecha (la cedo)
+      const d2 = document.getElementById('swapTargetDate').value; // fecha que quiero
+      const box = document.getElementById('swapCheck');
+      const cta = document.getElementById('swapCTA');
+      box.innerHTML = ''; cta.innerHTML = '';
+
+      if(!d1 || !d2){ box.textContent = 'Seleccioná ambas fechas.'; return; }
+
+      const A = asignadosFecha(d1);
+      const B = asignadosFecha(d2);
+      if(!A || !B){ box.textContent = 'Alguna fecha no existe en el calendario.'; return; }
+
+      // compañero en la fecha que quiero (excluye a Pablo y a mí)
+      const candidatosB = B.involucrados.filter(n => n && n !== me);
+      const companero = candidatosB.find(n => ["Matías","Iván","Lautaro"].includes(n)) || '';
+
+      const det = (obj) => `
+        <div class="p-2 rounded border bg-slate-50">
+          Crovara: ${obj.cro.join(', ')||'-'}<br/>
+          Canning: ${obj.can.join(', ')||'-'}<br/>
+          Libre: ${obj.lib||'-'}<br/>
+          Reducción: ${obj.red||'-'}
+        </div>`;
+
+      box.innerHTML = `
+        <div class="grid md:grid-cols-2 gap-3">
+          <div><div class="font-medium mb-1">Mi fecha (${d1})</div>${det(A)}</div>
+          <div><div class="font-medium mb-1">Fecha que quiero (${d2})</div>${det(B)}</div>
+        </div>
+        <div class="mt-2">Compañero identificado: <b>${companero||'—'}</b></div>
+      `;
+
+      // mailto prellenado según pedido
+      const subject = encodeURIComponent(`Solicitud de intercambio – ${me}`);
+      const body = encodeURIComponent(
+        `Solicito cambiar el día ${d2} por el día ${d1} con ${companero}.` +
+        `\n\nDetalle:` +
+        `\n• Mi fecha (${d1}) → Crovara/Canning/Libre/Reducción según calendario.` +
+        `\n• Fecha solicitada (${d2}) → según calendario.` +
+        `\n\nGracias.`
+      );
+      const mailto = `mailto:?subject=${subject}&body=${body}`;
+      cta.innerHTML = `
+        <a class="inline-flex mt-3 px-4 py-2 rounded-md bg-brand text-white hover:bg-brand-700" href="${mailto}">
+          Enviar solicitud de cambio
+        </a>
+        <p class="text-xs text-slate-500 mt-1"><span class="dot"></span>El correo se completa automáticamente con ambas fechas y el compañero.</p>
+      `;
+    }
+
+    function renderAll(){ renderCalendar(); const box = document.getElementById('quickResult'); if(box) box.textContent=''; }
+
+    // Listeners
+    document.getElementById('btnReload').addEventListener('click', renderAll);
+    document.getElementById('empleadoSelect').addEventListener('change', renderAll);
+    document.querySelectorAll('.qbtn').forEach(b => b.addEventListener('click', () => nextEvent(b.dataset.q)));
+    document.getElementById('btnCheckSwap').addEventListener('click', checkSwapFull);
+
+    // Cargar CSV
+    loadData(CSV_URL);
+  </script>
+</body>
+</html>
