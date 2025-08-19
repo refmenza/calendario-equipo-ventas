@@ -1,0 +1,435 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>📅 Calendario – Equipo de ventas</title>
+
+  <!-- Tailwind via CDN + paleta -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand:  { DEFAULT:'#004aad', 50:'#e8eef9',100:'#d1dcf3',200:'#a2b9e6',300:'#7496da',400:'#4673cd',500:'#185fc8',600:'#004aad',700:'#003a88',800:'#002a62',900:'#001b3d'},
+            sky2:   { DEFAULT:'#1aa6ff' },
+            accent: { DEFAULT:'#fbeb39' }
+          },
+          borderRadius: { '2xl':'1rem' }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    @media print { .no-print{display:none} body{font-size:11px} .card{break-inside:avoid} }
+    .badge{display:inline-flex;align-items:center;padding:.1rem .45rem;border-radius:9999px;font-size:.75rem;font-weight:600}
+    .b-crovara{background:#e8eef9;color:#004aad}
+    .b-canning{background:#e6f4ff;color:#005a99}
+    .b-libre{background:#e9f9f0;color:#0f5132}
+    .b-red{background:#f6eafa;color:#86198f}
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-900">
+  <!-- Header -->
+  <header class="no-print sticky top-0 z-10 bg-white/90 backdrop-blur border-b border-slate-200">
+    <div class="max-w-5xl mx-auto px-4 py-3 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+      <div class="flex items-center gap-3">
+        <img src="logo.png" alt="Logo" class="h-8 w-auto rounded" />
+        <h1 class="text-xl font-semibold">📅 Calendario – Equipo de ventas</h1>
+      </div>
+      <div class="flex flex-wrap gap-2">
+        <select id="empleadoSelect" class="px-3 py-2 rounded-md border"></select>
+        <button id="btnReload" class="px-3 py-2 rounded-md bg-brand text-white hover:bg-brand-700">Recargar</button>
+        <button id="btnAdmin" class="px-3 py-2 rounded-md border border-brand text-brand hover:bg-brand/10">Modo Gestión</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-5xl mx-auto p-4 flex flex-col gap-6">
+    <!-- Calendario -->
+    <section class="card p-4 bg-white rounded-2xl shadow-sm border border-slate-200">
+      <h2 class="text-lg font-semibold mb-3">Calendario (eventos del seleccionado)</h2>
+      <div id="calendar" class="space-y-6"></div>
+    </section>
+
+    <!-- Consultas rápidas -->
+    <section class="card p-4 bg-white rounded-2xl shadow-sm border border-slate-200">
+      <h2 class="text-lg font-semibold mb-3">Consultas rápidas</h2>
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
+        <button class="qbtn px-4 py-3 rounded-xl bg-slate-100 hover:bg-slate-200" data-q="libre">Próximo sábado libre</button>
+        <button class="qbtn px-4 py-3 rounded-xl bg-slate-100 hover:bg-slate-200" data-q="canning">Próximo sábado Canning</button>
+        <button class="qbtn px-4 py-3 rounded-xl bg-slate-100 hover:bg-slate-200" data-q="reduccion">Próxima jornada reducida</button>
+        <button class="qbtn px-4 py-3 rounded-xl bg-slate-100 hover:bg-slate-200" data-q="crovara">Próximo sábado Crovara</button>
+      </div>
+      <div id="quickResult" class="mt-3 text-sm text-slate-700"></div>
+    </section>
+
+    <!-- Intercambio de día (dos fechas) -->
+    <section id="swapSection" class="card p-4 bg-white rounded-2xl shadow-sm border border-slate-200">
+      <h2 class="text-lg font-semibold mb-2">Intercambio de día</h2>
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
+        <div>
+          <label class="block text-xs text-slate-500 mb-1">Tu nombre</label>
+          <select id="swapMe" class="w-full px-3 py-2 rounded-md border"></select>
+        </div>
+        <div>
+          <label class="block text-xs text-slate-500 mb-1">Mi fecha (la cedo)</label>
+          <input id="swapMyDate" type="date" class="w-full px-3 py-2 rounded-md border" />
+        </div>
+        <div>
+          <label class="block text-xs text-slate-500 mb-1">Fecha que quiero</label>
+          <input id="swapTargetDate" type="date" class="w-full px-3 py-2 rounded-md border" />
+        </div>
+        <div class="flex items-end">
+          <button id="btnCheckSwap" class="w-full px-3 py-2 rounded-md bg-brand text-white hover:bg-brand-700">Ver asignados</button>
+        </div>
+      </div>
+      <div id="swapCheck" class="mt-3 text-sm"></div>
+      <div id="swapCTA" class="mt-2 text-sm"></div>
+    </section>
+
+    <!-- Bases y condiciones -->
+    <section class="card p-4 bg-white rounded-2xl shadow-sm border border-slate-200">
+      <h2 class="text-lg font-semibold mb-3">📖 Bases y condiciones</h2>
+      <button onclick="document.getElementById('basesBox').classList.toggle('hidden')" 
+        class="px-4 py-2 rounded-xl bg-brand text-white hover:bg-brand-700">
+        Ver / Ocultar
+      </button>
+      <div id="basesBox" class="hidden mt-3 text-sm leading-relaxed space-y-2">
+        <p>• Cualquier cambio debe coordinarse primero entre compañeros y luego enviarse la petición formal por la app. Queda sujeto a aprobación.</p>
+        <p>• Este beneficio no es acumulativo ni recuperable. Los días que no puedan acceder al beneficio (cumpleaños, licencias, enfermedad, vacaciones) se pierden.</p>
+        <p>• El beneficio de los sábados libres no puede combinarse para armar bloques de días libres consecutivos.</p>
+        <p>• La empresa otorga este beneficio de forma arbitraria, apostando a que una mejora en las condiciones redunde en un mejor rendimiento. Debe ser un esquema ganar–ganar, caso contrario podrá ser quitado individual o colectivamente.</p>
+        <p>• Cada empleado es responsable de revisar su calendario en la app y respetar su turno asignado.</p>
+        <p>• Los cambios aprobados quedarán registrados digitalmente como constancia.</p>
+        <p>• La empresa podrá ajustar las políticas si la operación lo requiere, siempre comunicando previamente.</p>
+      </div>
+    </section>
+
+    <!-- Dashboard líder -->
+    <section id="adminSection" class="hidden card p-4 bg-white rounded-2xl shadow-sm border border-slate-200">
+      <div class="flex items-center justify-between">
+        <h2 class="text-lg font-semibold">📊 Vista General</h2>
+        <div class="text-sm">
+          <label class="mr-2 text-slate-500">Próximos</label>
+          <select id="admHorizon" class="px-2 py-1 rounded-md border">
+            <option value="10">10 eventos</option>
+            <option value="20" selected>20 eventos</option>
+            <option value="50">50 eventos</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-3">
+        <div class="border rounded-xl p-3">
+          <div class="font-semibold mb-2">🟣 Próximas jornadas reducidas (8–14)</div>
+          <div id="admReduc" class="text-sm space-y-1"></div>
+        </div>
+        <div class="border rounded-xl p-3">
+          <div class="font-semibold mb-2">🟢 Próximos sábados — LIBRE</div>
+          <div id="admLibre" class="text-sm space-y-1"></div>
+        </div>
+        <div class="border rounded-xl p-3">
+          <div class="font-semibold mb-2">🔵 Próximos sábados — Canning</div>
+          <div id="admCanning" class="text-sm space-y-1"></div>
+        </div>
+        <div class="border rounded-xl p-3">
+          <div class="font-semibold mb-2">🔷 Próximos sábados — Crovara</div>
+          <div id="admCrovara" class="text-sm space-y-1"></div>
+        </div>
+      </div>
+    </section>
+
+    <footer class="text-center text-xs text-slate-500 py-6">
+      Hecho con HTML+JS (0$). Datos: Google Sheets publicado como CSV. — © Tu Empresa
+    </footer>
+  </main>
+
+  <script>
+    // === Equipo y permisos ===
+    const TEAM = [
+      { name: "Matías",  canSwap: true,  showButtons: { libre:true,  canning:true,  reduccion:true,  crovara:true  } },
+      { name: "Iván",    canSwap: true,  showButtons: { libre:true,  canning:true,  reduccion:true,  crovara:true  } },
+      { name: "Lautaro", canSwap: true,  showButtons: { libre:true,  canning:true,  reduccion:true,  crovara:true  } },
+      { name: "Pablo",   canSwap: true,  showButtons: { libre:false, canning:false, reduccion:false, crovara:true } }, // solo Crovara + intercambio
+      { name: "Aldana",  canSwap: false, showButtons: { libre:true,  canning:false, reduccion:true,  crovara:false } }, // sin intercambio
+    ];
+    const SWAPPERS = TEAM.filter(t => t.canSwap).map(t => t.name);
+
+    function fillEmployeeSelect() {
+      const sel = document.getElementById('empleadoSelect');
+      sel.innerHTML = TEAM.map(t => `<option value="${t.name}">${t.name}</option>`).join('');
+      sel.value = TEAM[0].name;
+    }
+    function fillSwapSelect() {
+      const sel = document.getElementById('swapMe');
+      sel.innerHTML = SWAPPERS.map(n => `<option>${n}</option>`).join('');
+      const emp = document.getElementById('empleadoSelect').value;
+      if (SWAPPERS.includes(emp)) sel.value = emp;
+    }
+    function syncSwapMeToSelected() {
+      const emp = document.getElementById('empleadoSelect').value;
+      if (SWAPPERS.includes(emp)) document.getElementById('swapMe').value = emp;
+    }
+
+    function applyQuickButtonsVisibility() {
+      const empName = document.getElementById('empleadoSelect').value;
+      const meta = TEAM.find(t => t.name === empName) || TEAM[0];
+      const controls = {
+        libre:     document.querySelector('[data-q="libre"]'),
+        canning:   document.querySelector('[data-q="canning"]'),
+        reduccion: document.querySelector('[data-q="reduccion"]'),
+        crovara:   document.querySelector('[data-q="crovara"]'),
+      };
+      Object.entries(controls).forEach(([k, el]) => el.style.display = meta.showButtons[k] ? '' : 'none');
+      document.getElementById('swapSection').classList.toggle('hidden', !meta.canSwap);
+    }
+
+    // ===== Config CSV =====
+    const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQh4OOFKU2Z9YU3nTYLeSngPXFAPqADgO_HeT1JVYlLwmPpCnV0aZE-XAlVTEqytac4rOkjX34hD5Rw/pub?output=csv';
+    let rows = [];
+
+    // ===== Utils =====
+    const clean = (s) => (s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+    function parseDateStr(s){
+      if(!s) return null;
+      if(/^\d{4}-\d{2}-\d{2}$/.test(s)){ const [Y,M,D]=s.split('-').map(Number); return new Date(Y,M-1,D); }
+      if(/^\d{2}\/\d{2}\/\d{4}$/.test(s)){ const [D,M,Y]=s.split('/').map(Number); return new Date(Y,M-1,D); }
+      return new Date(s);
+    }
+    const fmt = (s) => { const d=parseDateStr(s); return (!d||isNaN(d))?s:d.toLocaleDateString('es-AR',{day:'2-digit',month:'short'}); };
+    const monthKey = (s) => { const d=parseDateStr(s); return (!d||isNaN(d))?'':d.toLocaleDateString('es-AR',{month:'long',year:'numeric'}); };
+    const parseCSV = (text) => {
+      const lines = text.trim().split(/\r?\n/);
+      const headers = lines[0].split(",").map(h => h.trim());
+      return lines.slice(1).map(line => {
+        const cols = line.split(/,(?=(?:[^"]*"[^"]*")*[^"]*$)/);
+        const o = {}; headers.forEach((h,i)=>o[h]=(cols[i]||'').replace(/^"|"$/g,'').trim());
+        return o;
+      });
+    };
+
+    // ===== Carga de datos =====
+    async function loadData(url){
+      const res = await fetch(url + '&v=' + Date.now(), { cache:'no-cache' });
+      if(!res.ok) throw new Error(`No se pudo cargar CSV (${res.status})`);
+      const txt = await res.text();
+      const raw = parseCSV(txt);
+      rows = raw.map(r => ({
+        fecha: r['Fecha'],
+        dia: (r['Día'] || r['Día de la semana'] || ''),
+        crovara: r['Crovara (Sábado)'] || '',
+        canning: r['Canning (Sábado)'] || '',
+        libre: r['Libre (Sábado)'] || '',
+        reduccion: r['Reducción 8-14'] || ''
+      }));
+      renderAll();
+      if (isAdmin()) renderAdmin(); // refresca dashboard si ya está activo
+    }
+
+    // ===== Render calendario =====
+    function renderCalendar(){
+      const empleado = document.getElementById('empleadoSelect').value;
+      const calEl = document.getElementById('calendar');
+      calEl.innerHTML = '';
+
+      const mine = rows.filter(r =>
+        clean(r.libre).includes(clean(empleado)) ||
+        clean(r.crovara).includes(clean(empleado)) ||
+        clean(r.canning).includes(clean(empleado)) ||
+        clean(r.reduccion).includes(clean(empleado))
+      );
+
+      const groups = {};
+      mine.forEach(r => { const k = monthKey(r.fecha); (groups[k] ||= []).push(r); });
+
+      Object.entries(groups).forEach(([mes, arr]) => {
+        arr.sort((a,b)=> parseDateStr(a.fecha) - parseDateStr(b.fecha) );
+        const box = document.createElement('div');
+        box.innerHTML = `<div class="border rounded-xl p-3">
+          <div class="font-semibold mb-2">${mes}</div>
+          ${arr.map(r => `
+            <div class="flex items-center justify-between py-1 border-b last:border-b-0">
+              <div class="text-sm font-medium">${fmt(r.fecha)} <span class="text-slate-500">(${r.dia})</span></div>
+              <div class="flex gap-2">
+                ${clean(r.libre).includes(clean(empleado)) ? '<span class="badge b-libre">LIBRE</span>' : ''}
+                ${clean(r.crovara).includes(clean(empleado)) ? '<span class="badge b-crovara">Crovara</span>' : ''}
+                ${clean(r.canning).includes(clean(empleado)) ? '<span class="badge b-canning">Canning</span>' : ''}
+                ${clean(r.reduccion).includes(clean(empleado)) ? '<span class="badge b-red">Reducción 8–14</span>' : ''}
+              </div>
+            </div>
+          `).join('')}
+        </div>`;
+        calEl.appendChild(box);
+      });
+    }
+
+    // ===== Consultas rápidas =====
+    function nextEvent(kind){
+      const empleado = document.getElementById('empleadoSelect').value;
+      const today = new Date();
+      const future = rows
+        .map(r => ({...r, _d: parseDateStr(r.fecha)}))
+        .filter(r => r._d && r._d >= new Date(today.toDateString()));
+      let match;
+      if(kind==='libre')     match = future.find(r => clean(r.libre).includes(clean(empleado)));
+      if(kind==='canning')   match = future.find(r => clean(r.canning).includes(clean(empleado)));
+      if(kind==='reduccion') match = future.find(r => clean(r.reduccion).includes(clean(empleado)));
+      if(kind==='crovara')   match = future.find(r => clean(r.crovara).includes(clean(empleado)));
+      const box = document.getElementById('quickResult');
+      if(match){
+        const label = kind==='libre' ? 'Sábado libre' :
+                      kind==='canning' ? 'Sábado en Canning' :
+                      kind==='crovara' ? 'Sábado en Crovara' : 'Jornada reducida';
+        box.innerHTML = `<span class="font-medium">${label}:</span> ${fmt(match.fecha)} <span class="text-slate-500">(${match.dia})</span>`;
+      } else { box.textContent = 'Sin eventos próximos encontrados.'; }
+    }
+
+    // ===== Intercambio (dos fechas) =====
+    function splitPeople(cell){
+      return (cell||'')
+        .split(/[+,]/)
+        .map(s => s.trim())
+        .filter(Boolean);
+    }
+    function asignadosFecha(isoDate){
+      const r = rows.find(x => x.fecha === isoDate);
+      if (!r) return null;
+      const cro = splitPeople(r.crovara);
+      const can = splitPeople(r.canning);
+      const lib = splitPeople(r.libre);
+      const red = splitPeople(r.reduccion);
+      const inv = new Set([...cro, ...can, ...lib, ...red]);
+      return { cro, can, lib, red, involucrados:[...inv] };
+    }
+    function elegirCompanero(info, me){
+      const libre = info.lib.find(n => SWAPPERS.includes(n) && n !== me);
+      if (libre) return libre;
+      const redu = info.red.find(n => SWAPPERS.includes(n) && n !== me);
+      if (redu) return redu;
+      const pool = [...info.cro, ...info.can].filter(n => SWAPPERS.includes(n) && n !== me);
+      if (pool.length) return pool[0];
+      return "";
+    }
+    function checkSwapFull(){
+      const me = document.getElementById('swapMe').value;
+      const d1 = document.getElementById('swapMyDate').value;
+      const d2 = document.getElementById('swapTargetDate').value;
+      const box = document.getElementById('swapCheck');
+      const cta = document.getElementById('swapCTA');
+      box.innerHTML = ''; cta.innerHTML = '';
+
+      if(!d1 || !d2){ box.textContent = 'Seleccioná ambas fechas.'; return; }
+
+      const A = asignadosFecha(d1);
+      const B = asignadosFecha(d2);
+      if(!A || !B){ box.textContent = 'Alguna fecha no existe en el calendario.'; return; }
+
+      const det = (obj) => `
+        <div class="p-2 rounded border bg-slate-50">
+          Crovara: ${obj.cro.join(', ')||'-'}<br/>
+          Canning: ${obj.can.join(', ')||'-'}<br/>
+          Libre: ${obj.lib.join(', ')||'-'}<br/>
+          Reducción: ${obj.red.join(', ')||'-'}
+        </div>`;
+
+      const companero = elegirCompanero(B, me);
+
+      box.innerHTML = `
+        <div class="grid md:grid-cols-2 gap-3">
+          <div><div class="font-medium mb-1">Mi fecha (${d1})</div>${det(A)}</div>
+          <div><div class="font-medium mb-1">Fecha que quiero (${d2})</div>${det(B)}</div>
+        </div>
+        <div class="mt-2">Compañero identificado: <b>${companero||'—'}</b></div>
+      `;
+
+      const to = 'agustinayasinski@gmail.com';
+      const subject = encodeURIComponent(`Solicitud de intercambio – ${me}`);
+      const body = encodeURIComponent(
+        `Solicito cambiar el día ${d2} por el día ${d1} con ${companero}.` +
+        `\n\nDetalle:` +
+        `\n• Mi fecha (${d1}) → Crovara/Canning/Libre/Reducción según calendario.` +
+        `\n• Fecha solicitada (${d2}) → según calendario.` +
+        `\n\nGracias.`
+      );
+      const mailto = `mailto:${to}?subject=${subject}&body=${body}`;
+
+      cta.innerHTML = `
+        <a class="inline-flex mt-3 px-4 py-2 rounded-md bg-brand text-white hover:bg-brand-700" href="${mailto}">
+          Enviar solicitud de cambio
+        </a>
+      `;
+    }
+
+    function renderAll(){
+      renderCalendar();
+      document.getElementById('quickResult').textContent='';
+      applyQuickButtonsVisibility();
+      fillSwapSelect();
+      syncSwapMeToSelected();
+    }
+
+    // ===== ADMIN (PIN suave) =====
+    const ADMIN_PIN = '2158'; // cambiá el PIN acá
+    function isAdmin(){ return localStorage.getItem('isAdmin') === '1'; }
+    function requireAdmin(){
+      if (isAdmin()) { showAdmin(true); return; }
+      const tryPin = prompt('Ingresá PIN de líder:');
+      if (tryPin === ADMIN_PIN) { localStorage.setItem('isAdmin','1'); showAdmin(true); }
+      else alert('PIN incorrecto');
+    }
+    function showAdmin(show){
+      document.getElementById('adminSection').classList.toggle('hidden', !show);
+      if (show) renderAdmin();
+    }
+    document.getElementById('btnAdmin').addEventListener('click', requireAdmin);
+    document.getElementById('admHorizon')?.addEventListener('change', renderAdmin);
+
+    function isSaturdayRow(r){
+      if (r.dia && /s[aá]b/i.test(r.dia)) return true;
+      const d = parseDateStr(r.fecha); return d && d.getDay() === 6;
+    }
+    function upcomingBy(fnFilter, limit){
+      const today = new Date(); today.setHours(0,0,0,0);
+      const future = rows
+        .map(r => ({...r, _d: parseDateStr(r.fecha)}))
+        .filter(r => r._d && r._d >= today)
+        .filter(fnFilter)
+        .sort((a,b)=> a._d - b._d);
+      return future.slice(0, limit);
+    }
+    function renderAdmin(){
+      if (!rows?.length) return;
+      const lim = parseInt(document.getElementById('admHorizon').value || '20', 10);
+
+      const redu = upcomingBy(r => (r.reduccion||'').trim(), lim)
+        .map(r => `• ${fmt(r.fecha)} (${r.dia}) — <b>${r.reduccion}</b>`);
+      const libre = upcomingBy(r => isSaturdayRow(r) && (r.libre||'').trim(), lim)
+        .map(r => `• ${fmt(r.fecha)} — <b>${r.libre}</b>`);
+      const canng = upcomingBy(r => isSaturdayRow(r) && (r.canning||'').trim(), lim)
+        .map(r => `• ${fmt(r.fecha)} — <b>${r.canning}</b>`);
+      const crov  = upcomingBy(r => isSaturdayRow(r) && (r.crovara||'').trim(), lim)
+        .map(r => `• ${fmt(r.fecha)} — <b>${r.crovara}</b>`);
+
+      const set = (id, arr) => document.getElementById(id).innerHTML = arr.length ? arr.join('<br>') : '<span class="text-slate-400">Sin datos</span>';
+
+      set('admReduc', redu);
+      set('admLibre', libre);
+      set('admCanning', canng);
+      set('admCrovara', crov);
+    }
+
+    // Re-render admin al recargar / cambiar empleado si está activo
+    ['empleadoSelect','btnReload'].forEach(id=>{
+      const el = document.getElementById(id);
+      el?.addEventListener(id==='btnReload'?'click':'change', ()=>{ if(isAdmin()) renderAdmin(); });
+    });
+
+    // Init
+    fillEmployeeSelect();
+    loadData(CSV_URL);
+  </script>
+</body>
+</html>
