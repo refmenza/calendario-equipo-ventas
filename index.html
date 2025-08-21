@@ -5,6 +5,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>📅 Calendario – Equipo de ventas</title>
 
+  <!-- PWA: manifest + theme + iOS -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#004aad">
+  <link rel="apple-touch-icon" href="icon-192.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+
   <!-- Tailwind via CDN + paleta -->
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
@@ -423,19 +430,28 @@
       set('admCrovara', crov);
     }
 
-    // Listeners
+    // ===== Listeners UI =====
     document.getElementById('btnReload').addEventListener('click', renderAll);
     document.getElementById('empleadoSelect').addEventListener('change', renderAll);
-
-    // Re-render admin al recargar / cambiar empleado si está activo
-    ['empleadoSelect','btnReload'].forEach(id=>{
-      const el = document.getElementById(id);
-      el?.addEventListener(id==='btnReload'?'click':'change', ()=>{ if(isAdmin()) renderAdmin(); });
+    document.getElementById('btnCheckSwap').addEventListener('click', checkSwapFull);
+    document.querySelectorAll('.qbtn').forEach(btn=>{
+      btn.addEventListener('click', ()=> nextEvent(btn.dataset.q));
     });
 
     // Init
     fillEmployeeSelect();
     loadData(CSV_URL);
   </script>
+
+  <!-- PWA: registro del Service Worker -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./service-worker.js')
+          .catch(err => console.log('SW registration failed', err));
+      });
+    }
+  </script>
 </body>
 </html>
+
